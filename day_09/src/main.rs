@@ -114,10 +114,10 @@ fn expand_basin(row: usize, col: usize, matrix: &Vec<Vec<u32>>) -> Vec<(usize, u
     basin
 }
 
-fn go_deeper(seed: &Vec<(usize, usize)>, input: &Vec<Vec<u32>>) -> Vec<(usize, usize)> {
+fn go_deeper(seed: &Vec<(usize, usize)>, matrix: &Vec<Vec<u32>>) -> Vec<(usize, usize)> {
     let mut copy = seed.clone();
     for (x, y) in seed {
-        for z in expand_basin(*x, *y, &input) {
+        for z in expand_basin(*x, *y, &matrix) {
             if !copy.contains(&z) {
                 copy.push(z);
             }
