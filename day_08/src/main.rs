@@ -1,6 +1,6 @@
 use std::fs;
 
-fn parse_input(input: &String) -> Vec<(&str, &str)> {
+fn parse_input(input: &str) -> Vec<(&str, &str)> {
     input.lines().fold(Vec::new(), |mut patterns, line| {
         patterns.push(line.split_once(" | ").unwrap());
         patterns
@@ -9,7 +9,7 @@ fn parse_input(input: &String) -> Vec<(&str, &str)> {
 
 fn part_one(input: Vec<(&str, &str)>) -> u32 {
     input.iter().fold(0, |mut total, pattern| {
-        total += pattern.1.split(" ").fold(0, |mut count, segment| {
+        total += pattern.1.split(' ').fold(0, |mut count, segment| {
             match segment.len() {
                 2 | 3 | 4 | 7 => count += 1,
                 _ => (),
@@ -46,10 +46,10 @@ impl Known {
                 }
             }
             if matches == 3 {
-                return '5';
+                '5'
             } else {
-                return '2';
-            };
+                '2'
+            }
         } else {
             for c in code.chars() {
                 if self.one.contains(c) {
@@ -66,9 +66,9 @@ impl Known {
                 }
             }
             if matches == 4 {
-                return '9';
+                '9'
             } else {
-                return '0';
+                '0'
             }
         }
     }
@@ -81,8 +81,8 @@ fn part_two(input: Vec<(&str, &str)>) -> u32 {
             seven: String::new(),
             eight: String::new(),
         };
-        let signal_patterns: Vec<&str> = tup.0.split(" ").collect();
-        let output_patterns: Vec<&str> = tup.1.split(" ").collect();
+        let signal_patterns: Vec<&str> = tup.0.split(' ').collect();
+        let output_patterns: Vec<&str> = tup.1.split(' ').collect();
 
         signal_patterns.iter().for_each(|s| match s.len() {
             2 => known.one = s.to_string(),

@@ -1,22 +1,24 @@
 use std::fs;
-fn parse_input(contents: &String) -> (Vec<&str>, Vec<u32>) {
+
+fn parse_input(contents: &str) -> (Vec<&str>, Vec<u32>) {
     let lines: Vec<&str> = contents.lines().collect();
     let mut selection: Vec<u32> = Vec::new();
     let mut boards = Vec::new();
     lines.iter().for_each(|line| {
         if line.len() > 14 {
-            selection = line.split(",").map(|n| n.parse().unwrap()).collect();
+            selection = line.split(',').map(|n| n.parse().unwrap()).collect();
         } else {
             boards.push(line.to_owned());
         }
     });
     (boards, selection)
 }
+
 fn parse_boards(boards: Vec<&str>) -> Vec<Vec<Vec<u32>>> {
     let mut boards_vec: Vec<Vec<Vec<u32>>> = Vec::new();
     let mut temp: Vec<Vec<u32>> = Vec::new();
     boards.iter().for_each(|line| {
-        if line.len() > 0 {
+        if !line.is_empty() {
             temp.push(
                 line.split_whitespace()
                     .map(|n| n.parse().unwrap())
@@ -41,7 +43,7 @@ fn sum_selected(vertical: &mut Vec<u32>, horizontal: &mut Vec<u32>, board: Vec<&
         .filter(|num| !selected.contains(num))
         .sum()
 }
-fn bingo_first_winner(selection: &Vec<u32>, boards: Vec<Vec<Vec<u32>>>) -> u32 {
+fn bingo_first_winner(selection: &[u32], boards: Vec<Vec<Vec<u32>>>) -> u32 {
     let mut horizontal: Vec<Vec<Vec<u32>>> = vec![vec![Vec::new(); 5]; boards.len()];
     let mut vertical: Vec<Vec<Vec<u32>>> = vec![vec![Vec::new(); 5]; boards.len()];
 
@@ -49,7 +51,7 @@ fn bingo_first_winner(selection: &Vec<u32>, boards: Vec<Vec<Vec<u32>>>) -> u32 {
     let mut winner: Vec<u32> = Vec::new();
     let mut idx = 0;
     loop {
-        if winner.len() > 0 {
+        if !winner.is_empty() {
             break;
         }
 
@@ -91,7 +93,7 @@ fn bingo_first_winner(selection: &Vec<u32>, boards: Vec<Vec<Vec<u32>>>) -> u32 {
     winner[winner.len() - 1] * selected_sum
 }
 
-fn bingo_last_winner(selection: &Vec<u32>, boards: Vec<Vec<Vec<u32>>>) -> u32 {
+fn bingo_last_winner(selection: &[u32], boards: Vec<Vec<Vec<u32>>>) -> u32 {
     let mut horizontal: Vec<Vec<Vec<u32>>> = vec![vec![Vec::new(); 5]; boards.len()];
     let mut vertical: Vec<Vec<Vec<u32>>> = vec![vec![Vec::new(); 5]; boards.len()];
 
@@ -109,17 +111,13 @@ fn bingo_last_winner(selection: &Vec<u32>, boards: Vec<Vec<Vec<u32>>>) -> u32 {
                         horizontal[i][j].push(selection[idx]);
                         vertical[i][k].push(selection[idx]);
 
-                        if horizontal[i][j].len() == 5 {
-                            if !winners.contains(&i) {
-                                winners.push(i);
-                                last_bingo = horizontal[i][j].to_vec();
-                            }
+                        if horizontal[i][j].len() == 5 && !winners.contains(&i) {
+                            winners.push(i);
+                            last_bingo = horizontal[i][j].to_vec();
                         }
-                        if vertical[i][k].len() == 5 {
-                            if !winners.contains(&i) {
-                                winners.push(i);
-                                last_bingo = vertical[i][k].to_vec();
-                            }
+                        if vertical[i][k].len() == 5 && !winners.contains(&i) {
+                            winners.push(i);
+                            last_bingo = vertical[i][k].to_vec();
                         }
                     }
                 }

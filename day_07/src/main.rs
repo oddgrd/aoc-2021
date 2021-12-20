@@ -1,8 +1,8 @@
 use std::fs;
 
-fn parse_input(input: &String) -> Vec<i32> {
-    let mut sorted: Vec<i32> = input.split(",").map(|n| n.parse().unwrap()).collect();
-    sorted.sort();
+fn parse_input(input: &str) -> Vec<i32> {
+    let mut sorted: Vec<i32> = input.split(',').map(|n| n.parse().unwrap()).collect();
+    sorted.sort_unstable();
     sorted
 }
 
@@ -18,7 +18,7 @@ fn part_one(positions: Vec<i32>) -> i32 {
 fn triangle(n: i32) -> i32 {
     (n * (n + 1)) / 2
 }
-fn calc_fuel_cost(positions: &Vec<i32>, mid: i32) -> i32 {
+fn calc_fuel_cost(positions: &[i32], mid: i32) -> i32 {
     positions.iter().fold(0, |mut fuel_cost: i32, crab| {
         fuel_cost += triangle((mid - crab).abs());
         fuel_cost

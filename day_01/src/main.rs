@@ -1,6 +1,6 @@
 use std::fs;
 
-fn parse_input(input: &String) -> Vec<u32> {
+fn parse_input(input: &str) -> Vec<u32> {
     input.lines().map(|line| line.parse().unwrap()).collect()
 }
 
@@ -16,7 +16,7 @@ fn count_increases(input: Vec<u32>) -> u32 {
     counter
 }
 
-fn count_increases_sums(input: Vec<u32>) -> u32 {
+fn count_increases_triplets(input: Vec<u32>) -> u32 {
     let mut counter = 0;
     let mut prev: u32 = input[0..=2].iter().sum();
     for i in 0..input.len() - 2 {
@@ -36,6 +36,6 @@ fn main() {
     );
     println!(
         "Sum triplets increases count:\n{}",
-        count_increases_sums(parse_input(&contents))
+        count_increases_triplets(parse_input(&contents))
     );
 }

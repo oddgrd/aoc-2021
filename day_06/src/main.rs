@@ -1,7 +1,7 @@
 use std::fs;
 
-fn parse_input(contents: &String) -> Vec<usize> {
-    contents.split(",").map(|n| n.parse().unwrap()).collect()
+fn parse_input(contents: &str) -> Vec<usize> {
+    contents.split(',').map(|n| n.parse().unwrap()).collect()
 }
 
 fn simulate_lanternfish(seed: Vec<usize>, days: i32) -> usize {

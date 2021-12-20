@@ -1,17 +1,17 @@
 use std::fs;
 
-fn parse_input(contents: &String) -> Vec<Vec<char>> {
+fn parse_input(contents: &str) -> Vec<Vec<char>> {
     contents
         .lines()
         .map(|line| line.chars().collect())
         .collect()
 }
 
-fn binary_to_decimal(binary: &String) -> u32 {
-    u32::from_str_radix(binary, 2).unwrap()
+fn binary_to_decimal(binary: String) -> u32 {
+    u32::from_str_radix(&binary, 2).unwrap()
 }
 
-fn find_most_common_bit(column: &String) -> char {
+fn find_most_common_bit(column: &str) -> char {
     let count_0 = column.matches('0').count();
     let count_1 = column.matches('1').count();
     if count_0 > count_1 {
@@ -21,7 +21,7 @@ fn find_most_common_bit(column: &String) -> char {
     }
 }
 
-fn find_most_common_bits(input: &Vec<Vec<char>>) -> Vec<char> {
+fn find_most_common_bits(input: &[Vec<char>]) -> Vec<char> {
     let mut most_common_bits = vec!['0'; input[0].len()];
     let mut columns = vec![String::new(); input[0].len()];
     for row in input {
@@ -38,9 +38,9 @@ fn find_most_common_bits(input: &Vec<Vec<char>>) -> Vec<char> {
 fn power_consumption(input: Vec<Vec<char>>) -> u32 {
     let most_common_bits = find_most_common_bits(&input);
 
-    let most_common = binary_to_decimal(&most_common_bits.iter().collect());
+    let most_common = binary_to_decimal(most_common_bits.iter().collect());
     let least_common = binary_to_decimal(
-        &most_common_bits
+        most_common_bits
             .iter()
             .map(|&bit| if bit == '0' { '1' } else { '0' })
             .collect(),
@@ -55,7 +55,7 @@ enum LifeSupport {
 }
 fn life_support_rating(input: Vec<Vec<char>>, mut i: usize, system: LifeSupport) -> u32 {
     if input.len() == 1 {
-        return binary_to_decimal(&input[0].iter().collect());
+        return binary_to_decimal(input[0].iter().collect());
     }
 
     let most_common_bits = find_most_common_bits(&input);

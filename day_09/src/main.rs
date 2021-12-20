@@ -1,6 +1,6 @@
 use std::fs;
 
-fn parse_input(input: &String) -> Vec<Vec<u32>> {
+fn parse_input(input: &str) -> Vec<Vec<u32>> {
     input
         .lines()
         .map(|line| line.chars().map(|c| c.to_digit(10).unwrap()).collect())
@@ -23,7 +23,7 @@ impl Point {
     }
 }
 
-fn find_neigbours(row: usize, col: usize, matrix: &Vec<Vec<u32>>) -> Vec<u32> {
+fn find_neigbours(row: usize, col: usize, matrix: &[Vec<u32>]) -> Vec<u32> {
     let mut neighbours = Vec::new();
     //top
     if row > 0 {
@@ -77,7 +77,7 @@ fn part_one(input: Vec<Vec<u32>>) -> u32 {
     total
 }
 
-fn expand_basin(row: usize, col: usize, matrix: &Vec<Vec<u32>>) -> Vec<(usize, usize)> {
+fn expand_basin(row: usize, col: usize, matrix: &[Vec<u32>]) -> Vec<(usize, usize)> {
     let mut basin: Vec<(usize, usize)> = Vec::new();
     //top
     if row > 0 {
@@ -114,10 +114,10 @@ fn expand_basin(row: usize, col: usize, matrix: &Vec<Vec<u32>>) -> Vec<(usize, u
     basin
 }
 
-fn go_deeper(seed: &Vec<(usize, usize)>, matrix: &Vec<Vec<u32>>) -> Vec<(usize, usize)> {
-    let mut copy = seed.clone();
+fn go_deeper(seed: &[(usize, usize)], matrix: &[Vec<u32>]) -> Vec<(usize, usize)> {
+    let mut copy = seed.to_owned();
     for (x, y) in seed {
-        for z in expand_basin(*x, *y, &matrix) {
+        for z in expand_basin(*x, *y, matrix) {
             if !copy.contains(&z) {
                 copy.push(z);
             }
@@ -128,7 +128,7 @@ fn go_deeper(seed: &Vec<(usize, usize)>, matrix: &Vec<Vec<u32>>) -> Vec<(usize, 
 
 fn multiply_biggest_basins(lengths: Vec<usize>) -> usize {
     let mut sorted = lengths;
-    sorted.sort();
+    sorted.sort_unstable();
     let len = sorted.len();
     sorted[len - 1] * sorted[len - 2] * sorted[len - 3]
 }
@@ -153,16 +153,15 @@ fn part_two(input: Vec<Vec<u32>>) -> usize {
     let basins: Vec<Vec<(usize, usize)>> = seed
         .iter()
         .map(|basin| {
-            let mut prev = go_deeper(&basin, &input);
+            let mut prev = go_deeper(basin, &input);
 
-            let expanded_basin = loop {
+            loop {
                 if go_deeper(&prev, &input).len() == prev.len() {
                     break prev;
                 } else {
                     prev = go_deeper(&prev, &input);
                 }
-            };
-            expanded_basin
+            }
         })
         .collect();
 

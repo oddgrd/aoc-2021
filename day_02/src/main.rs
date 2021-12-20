@@ -1,6 +1,6 @@
 use std::fs;
 
-fn parse_input(contents: &String) -> Vec<(&str, i32)> {
+fn parse_input(contents: &str) -> Vec<(&str, i32)> {
     contents
         .lines()
         .map(|line| {

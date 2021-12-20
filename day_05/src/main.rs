@@ -1,12 +1,12 @@
 use std::fs;
 
-fn parse_input(contents: &String) -> Vec<Vec<usize>> {
+fn parse_input(contents: &str) -> Vec<Vec<usize>> {
     contents
         .lines()
         .map(|line| line.replace(" -> ", " "))
         .map(|line| line.replace(",", " "))
         .fold(Vec::new(), |mut coords, line| {
-            coords.push(line.split(" ").map(|s| s.parse().unwrap()).collect());
+            coords.push(line.split(' ').map(|s| s.parse().unwrap()).collect());
             coords
         })
 }
@@ -21,13 +21,13 @@ fn find_overlaps(coordinates: Vec<Vec<usize>>) -> usize {
     coordinates.iter().for_each(|coord| {
         if coord[0] == coord[2] {
             let mut x = vec![coord[1], coord[3]];
-            x.sort();
+            x.sort_unstable();
             for i in x[0]..=x[1] {
                 grid[i][coord[0]] += 1;
             }
         } else if coord[1] == coord[3] {
             let mut y = vec![coord[0], coord[2]];
-            y.sort();
+            y.sort_unstable();
             for i in y[0]..=y[1] {
                 grid[coord[1]][i] += 1;
             }

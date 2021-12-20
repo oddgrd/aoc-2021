@@ -3,7 +3,7 @@ use std::fs;
 const OPEN: [char; 4] = ['(', '[', '{', '<'];
 const CLOSE: [char; 4] = [')', ']', '}', '>'];
 
-fn parse_input(input: &String) -> Vec<Vec<char>> {
+fn parse_input(input: &str) -> Vec<Vec<char>> {
     input.lines().map(|line| line.chars().collect()).collect()
 }
 
@@ -19,19 +19,17 @@ fn part_one(input: Vec<Vec<char>>) -> (u32, Vec<Vec<char>>) {
 
             if close_idx == None {
                 stack.push(line[i + 1]);
+            } else if close_idx == open_idx {
+                stack.pop();
             } else {
-                if close_idx == open_idx {
-                    stack.pop();
-                } else {
-                    total += match line[i + 1] {
-                        ')' => 3,
-                        ']' => 57,
-                        '}' => 1197,
-                        '>' => 25137,
-                        _ => 0,
-                    };
-                    break;
-                }
+                total += match line[i + 1] {
+                    ')' => 3,
+                    ']' => 57,
+                    '}' => 1197,
+                    '>' => 25137,
+                    _ => 0,
+                };
+                break;
             }
 
             i += 1;
@@ -61,7 +59,7 @@ fn part_two((_, incomplete): (u32, Vec<Vec<char>>)) -> u64 {
         }));
         scores
     });
-    scores.sort();
+    scores.sort_unstable();
     scores[scores.len() / 2]
 }
 fn main() {
