@@ -67,12 +67,10 @@ fn find_paths_two<'a>(
     if cave == "end" {
         return vec![new_path];
     }
-
+    let contains_dup = contains_duplicate(&new_path);
     let edges = graph.get(cave).unwrap();
     edges.iter().for_each(|e| {
-        if *e != "start"
-            && (!is_lower(e) || (!contains_duplicate(&new_path) || !new_path.contains(e)))
-        {
+        if *e != "start" && (!is_lower(e) || (!contains_dup || !new_path.contains(e))) {
             let tmp_path = find_paths_two(graph, e, &new_path);
             paths.extend(tmp_path);
         }
@@ -94,6 +92,6 @@ fn main() {
         "Part two paths: {:?}",
         find_paths_two(&adj_list, "start", &[]).len()
     );
-    // Part two runs in 4 seconds
+    // Part two runs in 1.8 seconds
     println!("Part two timer: {}ms", now.elapsed().as_millis());
 }
