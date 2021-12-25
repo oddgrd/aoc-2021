@@ -81,12 +81,19 @@ fn game_of_octopus(input: Vec<Vec<u32>>, part_one_limit: Option<usize>) -> usize
                 }
             }
         }
+
         i += 1;
-        if part_one_limit != None && i == part_one_limit.unwrap() {
-            break flashes;
-        }
-        if flashed_coords.len() == octopi.len() * octopi[0].len() {
-            break i;
+        match part_one_limit {
+            None => {
+                if flashed_coords.len() == octopi.len() * octopi[0].len() {
+                    break i;
+                }
+            }
+            Some(part_one_limit) => {
+                if i == part_one_limit {
+                    break flashes;
+                }
+            }
         }
     }
 }
