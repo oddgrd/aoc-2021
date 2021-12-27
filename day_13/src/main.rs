@@ -18,12 +18,12 @@ fn parse_input(input: &str) -> (Vec<Dot>, Vec<Fold>) {
             .trim()
             .lines()
             .map(|line| {
-                let (c, n) = line[11..line.len()].split_once('=').unwrap();
+                let (ch, num) = line[11..line.len()].split_once('=').unwrap();
 
-                if let "x" = c {
-                    Fold::Left(n.parse().unwrap())
+                if ch == "x" {
+                    Fold::Left(num.parse().unwrap())
                 } else {
-                    Fold::Up(n.parse().unwrap())
+                    Fold::Up(num.parse().unwrap())
                 }
             })
             .collect(),
@@ -52,7 +52,7 @@ fn initial_size(folds: &[Fold]) -> (usize, usize) {
 
 fn calculate_folds(
     input: (Vec<Dot>, Vec<Fold>),
-    part_one: Option<usize>,
+    limit: Option<usize>,
 ) -> (Vec<Dot>, (usize, usize)) {
     let (mut dots, folds) = input;
     let (mut width, mut height) = initial_size(&folds);
@@ -79,9 +79,9 @@ fn calculate_folds(
         }
 
         i += 1;
-        match part_one {
-            Some(part_one) => {
-                if i == part_one {
+        match limit {
+            Some(limit) => {
+                if i == limit {
                     break;
                 }
             }
