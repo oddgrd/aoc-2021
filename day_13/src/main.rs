@@ -79,17 +79,8 @@ fn calculate_folds(
         }
 
         i += 1;
-        match limit {
-            Some(limit) => {
-                if i == limit {
-                    break;
-                }
-            }
-            None => {
-                if i == folds.len() {
-                    break;
-                }
-            }
+        if i == limit.unwrap_or(folds.len()) {
+            break;
         }
     }
 
