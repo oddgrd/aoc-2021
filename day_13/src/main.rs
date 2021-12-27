@@ -57,6 +57,11 @@ fn calculate_folds(
     let (mut dots, folds) = input;
     let (mut width, mut height) = initial_size(&folds);
 
+    assert!(
+        limit < Some(folds.len() + 1),
+        "Limit is higher than length of folds"
+    );
+
     let mut i = 0;
     loop {
         match folds[i] {
