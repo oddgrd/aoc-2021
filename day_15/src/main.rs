@@ -36,9 +36,7 @@ fn parse_input(input: &str) -> Vec<Vec<usize>> {
     input
         .lines()
         .map(|line| {
-            let chars = line.chars().collect::<Vec<char>>();
-            chars
-                .iter()
+            line.chars()
                 .map(|c| c.to_digit(10).unwrap() as usize)
                 .collect()
         })
@@ -83,28 +81,37 @@ fn dijkstra(matrix: Vec<Vec<usize>>) -> Option<usize> {
         position: start,
     });
 
+    // Examine the frontier with lower cost nodes first (min-heap)
     while let Some(State { cost, position }) = heap.pop() {
+        // Alternatively we could have continued to find all shortest paths
+
         if position == end {
             return Some(cost);
         }
 
+        // Important as we may have already found a better way
         if cost > dist[position.x][position.y] {
             continue;
         }
 
+        // For each node we can reach, see if we can find a way with
+        // a lower cost going through this node
         for p in find_neighbours(position, &matrix) {
             let next = State {
                 cost: cost + matrix[p.x][p.y],
                 position: p,
             };
+
+            // If so, add it to the frontier and continue
             if next.cost < dist[p.x][p.y] {
                 heap.push(next);
-
+                // Relaxation, we have now found a better way
                 dist[p.x][p.y] = next.cost;
             }
         }
     }
 
+    // Goal not reachable
     None
 }
 fn main() {
