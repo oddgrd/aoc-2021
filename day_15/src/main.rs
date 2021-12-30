@@ -72,7 +72,7 @@ fn dijkstra(matrix: Vec<Vec<usize>>) -> Option<usize> {
         y: matrix.len() - 1,
     };
 
-    let mut dist: Vec<Vec<_>> = vec![vec![usize::MAX; matrix[0].len()]; matrix.len()];
+    let mut dist = vec![vec![usize::MAX; matrix[0].len()]; matrix.len()];
     let mut heap = BinaryHeap::new();
 
     dist[start.x][start.y] = 0;
@@ -90,24 +90,78 @@ fn dijkstra(matrix: Vec<Vec<usize>>) -> Option<usize> {
             continue;
         }
 
-        for p in find_neighbours(position, &matrix) {
+        for Point { x, y } in find_neighbours(position, &matrix) {
             let next = State {
-                cost: cost + matrix[p.x][p.y],
-                position: p,
+                cost: cost + matrix[x][y],
+                position: Point { x, y },
             };
 
-            if next.cost < dist[p.x][p.y] {
+            if next.cost < dist[x][y] {
                 heap.push(next);
-                dist[p.x][p.y] = next.cost;
+                dist[x][y] = next.cost;
             }
         }
     }
 
     None
 }
+
+fn increment_tile(tile: &[Vec<usize>], i: usize) -> Vec<Vec<usize>> {
+    tile.iter()
+        .map(|row| {
+            row.iter()
+                .map(|v| if *v + i > 9 { (v + i) - 9 } else { v + i })
+                .collect()
+        })
+        .collect()
+}
+
+fn expand_down(matrix: &[Vec<usize>], steps: usize) -> Vec<Vec<usize>> {
+    let mut expanded = matrix.to_vec();
+    let mut i = 1;
+
+    loop {
+        expanded.extend(increment_tile(matrix, i));
+
+        i += 1;
+        if i == steps + 1 {
+            break expanded;
+        }
+    }
+}
+
+fn expand_right(matrix: &[Vec<usize>], steps: usize) -> Vec<Vec<usize>> {
+    let mut expanded = matrix.to_vec();
+    let mut i = 1;
+
+    loop {
+        let incremented = increment_tile(matrix, i);
+
+        for j in 0..expanded.len() {
+            expanded[j].extend(&incremented[j]);
+        }
+
+        i += 1;
+        if i == steps + 1 {
+            break expanded;
+        }
+    }
+}
+
+fn expand_matrix(matrix: &[Vec<usize>], steps: usize) -> Vec<Vec<usize>> {
+    expand_down(matrix, steps)
+        .chunks(matrix.len())
+        .fold(Vec::new(), |mut expanded, tile| {
+            expanded.extend(expand_right(tile, 4));
+            expanded
+        })
+}
+
 fn main() {
     let contents = fs::read_to_string("input.txt").expect("Something went wrong reading the file");
+
     let now = Instant::now();
-    println!("{:?}", dijkstra(parse_input(&contents)));
-    println!("time: {}", now.elapsed().as_millis());
+    let expanded = expand_matrix(&parse_input(&contents), 4);
+    println!("{:?}", dijkstra(expanded));
+    println!("time: {}", now.elapsed().as_millis()); // 400ms
 }
