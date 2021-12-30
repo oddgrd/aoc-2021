@@ -118,13 +118,13 @@ fn increment_tile(tile: &[Vec<usize>], i: usize) -> Vec<Vec<usize>> {
 
 fn expand_down(matrix: &[Vec<usize>], steps: usize) -> Vec<Vec<usize>> {
     let mut expanded = matrix.to_vec();
-    let mut i = 1;
+    let mut i = 0;
 
     loop {
-        expanded.extend(increment_tile(matrix, i));
+        expanded.extend(increment_tile(matrix, i + 1));
 
         i += 1;
-        if i == steps + 1 {
+        if i == steps {
             break expanded;
         }
     }
@@ -132,17 +132,17 @@ fn expand_down(matrix: &[Vec<usize>], steps: usize) -> Vec<Vec<usize>> {
 
 fn expand_right(matrix: &[Vec<usize>], steps: usize) -> Vec<Vec<usize>> {
     let mut expanded = matrix.to_vec();
-    let mut i = 1;
+    let mut i = 0;
 
     loop {
-        let incremented = increment_tile(matrix, i);
+        let incremented = increment_tile(matrix, i + 1);
 
         for j in 0..expanded.len() {
             expanded[j].extend(&incremented[j]);
         }
 
         i += 1;
-        if i == steps + 1 {
+        if i == steps {
             break expanded;
         }
     }
