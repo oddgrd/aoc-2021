@@ -128,51 +128,40 @@ fn evaluate_packet(packet: &Packet) -> usize {
             type_id,
             sub_packets,
             ..
-        }) => match type_id {
-            0 => sub_packets
-                .iter()
-                .map(|p| evaluate_packet(p))
-                .sum::<usize>(),
-            1 => sub_packets
-                .iter()
-                .map(|p| evaluate_packet(p))
-                .fold(1, |mut val, p| {
+        }) => {
+            let sub_packets = sub_packets.iter().map(|p| evaluate_packet(p));
+            match type_id {
+                0 => sub_packets.sum::<usize>(),
+                1 => sub_packets.fold(1, |mut val, p| {
                     val *= p;
                     val
                 }),
-            2 => sub_packets
-                .iter()
-                .map(|p| evaluate_packet(p))
-                .min()
-                .unwrap(),
-            3 => sub_packets
-                .iter()
-                .map(|p| evaluate_packet(p))
-                .max()
-                .unwrap(),
-            5 => {
-                let values: Vec<usize> = sub_packets.iter().map(|p| evaluate_packet(p)).collect();
-                match values[0] > values[1] {
-                    true => 1,
-                    false => 0,
+                2 => sub_packets.min().unwrap(),
+                3 => sub_packets.max().unwrap(),
+                5 => {
+                    let values: Vec<usize> = sub_packets.collect();
+                    match values[0] > values[1] {
+                        true => 1,
+                        false => 0,
+                    }
                 }
-            }
-            6 => {
-                let values: Vec<usize> = sub_packets.iter().map(|p| evaluate_packet(p)).collect();
-                match values[0] < values[1] {
-                    true => 1,
-                    false => 0,
+                6 => {
+                    let values: Vec<usize> = sub_packets.collect();
+                    match values[0] < values[1] {
+                        true => 1,
+                        false => 0,
+                    }
                 }
-            }
-            7 => {
-                let values: Vec<usize> = sub_packets.iter().map(|p| evaluate_packet(p)).collect();
-                match values[0] == values[1] {
-                    true => 1,
-                    false => 0,
+                7 => {
+                    let values: Vec<usize> = sub_packets.collect();
+                    match values[0] == values[1] {
+                        true => 1,
+                        false => 0,
+                    }
                 }
+                _ => 0,
             }
-            _ => 0,
-        },
+        }
     }
 }
 
