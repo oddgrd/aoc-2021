@@ -100,16 +100,9 @@ fn split_fish(fish: &[Elem]) -> Vec<Elem> {
 
     let mut reduced = false;
     while let Some(Elem { value, depth }) = iter.next() {
-        // if reduced {
-        //     updated.extend(fish[i..].to_owned());
-        //     break;
-        // }
         if *value > 9 && !reduced {
             updated.push(Elem::new(value / 2, depth + 1));
-            updated.push(Elem::new(
-                (((*value as f32) / 2f32).ceil()) as u32,
-                depth + 1,
-            ));
+            updated.push(Elem::new(((*value as f32) / 2f32).ceil() as u32, depth + 1));
             reduced = true;
         } else {
             updated.push(Elem::new(*value, *depth));
@@ -150,6 +143,7 @@ fn magnify(fish: &[Elem]) -> Vec<Elem> {
     }
     fish
 }
+
 fn part_one(input: &[Vec<Elem>]) -> u32 {
     let mut iter = input.iter();
     let mut fish = iter.next().unwrap().to_owned();
