@@ -124,11 +124,10 @@ fn magnify(fish: &[Elem]) -> Vec<Elem> {
 
     let mut magnified = false;
     while let Some(cur) = iter.next() {
-        fish.push(*cur);
         if let Some(next) = iter.peek() {
             if cur.depth == next.depth {
                 let sum_pair = (3 * cur.value) + (2 * next.value);
-                fish.pop();
+
                 fish.push(Elem::new(
                     sum_pair,
                     if cur.depth > 0 { cur.depth - 1 } else { 0 },
@@ -136,6 +135,8 @@ fn magnify(fish: &[Elem]) -> Vec<Elem> {
                 magnified = true;
                 iter.next();
             }
+        } else {
+            fish.push(*cur);
         }
     }
     if !magnified {
