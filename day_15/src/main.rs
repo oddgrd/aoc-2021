@@ -1,3 +1,4 @@
+use arrayvec::ArrayVec;
 use std::cmp::Ordering;
 use std::collections::BinaryHeap;
 use std::fs;
@@ -5,7 +6,7 @@ use std::time::Instant;
 
 #[derive(Copy, Clone, Eq, PartialEq)]
 struct State {
-    cost: usize,
+    cost: u16,
     position: Point,
 }
 impl Ord for State {
@@ -32,19 +33,21 @@ impl Point {
     }
 }
 
-fn parse_input(input: &str) -> Vec<Vec<usize>> {
+const GRID_SIZE: usize = 100;
+
+fn parse_input(input: &str) -> Vec<Vec<u8>> {
     input
         .lines()
         .map(|line| {
             line.chars()
-                .map(|c| c.to_digit(10).unwrap() as usize)
+                .map(|c| c.to_digit(10).unwrap() as u8)
                 .collect()
         })
         .collect()
 }
 
-fn find_neighbours(p: Point, matrix: &[Vec<usize>]) -> Vec<Point> {
-    let mut neighbours = Vec::new();
+fn find_neighbours(p: Point, size: usize) -> ArrayVec<Point, 4> {
+    let mut neighbours = ArrayVec::<Point, 4>::new();
 
     //top
     if p.x > 0 {
@@ -55,24 +58,24 @@ fn find_neighbours(p: Point, matrix: &[Vec<usize>]) -> Vec<Point> {
         neighbours.push(Point::new(p.x, p.y - 1));
     }
     //right
-    if p.y + 1 < matrix[p.x].len() {
+    if p.y + 1 < size {
         neighbours.push(Point::new(p.x, p.y + 1));
     }
     //bottom
-    if p.x + 1 < matrix.len() {
+    if p.x + 1 < size {
         neighbours.push(Point::new(p.x + 1, p.y));
     }
     neighbours
 }
 
-fn dijkstra(matrix: Vec<Vec<usize>>) -> Option<usize> {
+fn dijkstra<const SIZE: usize>(matrix: &Vec<Vec<u8>>) -> Option<u16> {
     let start = Point { x: 0, y: 0 };
     let end = Point {
         x: matrix[0].len() - 1,
         y: matrix.len() - 1,
     };
 
-    let mut dist = vec![vec![usize::MAX; matrix[0].len()]; matrix.len()];
+    let mut dist = [[u16::MAX; SIZE]; SIZE];
     let mut heap = BinaryHeap::new();
 
     dist[start.x][start.y] = 0;
@@ -90,9 +93,9 @@ fn dijkstra(matrix: Vec<Vec<usize>>) -> Option<usize> {
             continue;
         }
 
-        for Point { x, y } in find_neighbours(position, &matrix) {
+        for Point { x, y } in find_neighbours(position, SIZE) {
             let next = State {
-                cost: cost + matrix[x][y],
+                cost: cost + matrix[x][y] as u16,
                 position: Point { x, y },
             };
 
@@ -106,7 +109,7 @@ fn dijkstra(matrix: Vec<Vec<usize>>) -> Option<usize> {
     None
 }
 
-fn increment_tile(tile: &[Vec<usize>], i: usize) -> Vec<Vec<usize>> {
+fn increment_tile(tile: &[Vec<u8>], i: u8) -> Vec<Vec<u8>> {
     tile.iter()
         .map(|row| {
             row.iter()
@@ -116,7 +119,7 @@ fn increment_tile(tile: &[Vec<usize>], i: usize) -> Vec<Vec<usize>> {
         .collect()
 }
 
-fn expand_down(matrix: &[Vec<usize>], steps: usize) -> Vec<Vec<usize>> {
+fn expand_down(matrix: &[Vec<u8>]) -> Vec<Vec<u8>> {
     let mut expanded = matrix.to_vec();
     let mut i = 0;
 
@@ -124,13 +127,13 @@ fn expand_down(matrix: &[Vec<usize>], steps: usize) -> Vec<Vec<usize>> {
         expanded.extend(increment_tile(matrix, i + 1));
 
         i += 1;
-        if i == steps {
+        if i == 4 {
             break expanded;
         }
     }
 }
 
-fn expand_right(matrix: &[Vec<usize>], steps: usize) -> Vec<Vec<usize>> {
+fn expand_right(matrix: &[Vec<u8>]) -> Vec<Vec<u8>> {
     let mut expanded = matrix.to_vec();
     let mut i = 0;
 
@@ -142,17 +145,17 @@ fn expand_right(matrix: &[Vec<usize>], steps: usize) -> Vec<Vec<usize>> {
         }
 
         i += 1;
-        if i == steps {
+        if i == 4 {
             break expanded;
         }
     }
 }
 
-fn expand_matrix(matrix: &[Vec<usize>], steps: usize) -> Vec<Vec<usize>> {
-    expand_down(matrix, steps)
+fn expand_matrix(matrix: &[Vec<u8>]) -> Vec<Vec<u8>> {
+    expand_down(matrix)
         .chunks(matrix.len())
         .fold(Vec::new(), |mut expanded, tile| {
-            expanded.extend(expand_right(tile, 4));
+            expanded.extend(expand_right(tile));
             expanded
         })
 }
@@ -161,7 +164,13 @@ fn main() {
     let contents = fs::read_to_string("input.txt").expect("Something went wrong reading the file");
 
     let now = Instant::now();
-    let expanded = expand_matrix(&parse_input(&contents), 4);
-    println!("{:?}", dijkstra(expanded));
-    println!("time: {}", now.elapsed().as_millis()); // 400ms
+    println!(
+        "Part one: {:?}",
+        dijkstra::<GRID_SIZE>(&parse_input(&contents))
+    );
+    println!(
+        "Part two: {:?}",
+        dijkstra::<{ 5 * GRID_SIZE }>(&expand_matrix(&parse_input(&contents)))
+    );
+    println!("time: {}", now.elapsed().as_millis()); // 270ms
 }
