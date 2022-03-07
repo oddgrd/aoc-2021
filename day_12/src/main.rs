@@ -21,30 +21,7 @@ fn is_lower(s: &str) -> bool {
     s == s.to_lowercase()
 }
 
-fn find_paths_one<'a>(
-    graph: &'a HashMap<&'a str, Vec<&'a str>>,
-    cave: &'a str,
-    visited: &[&'a str],
-) -> Vec<Vec<&'a str>> {
-    let mut paths = Vec::new();
-    let mut new_path = visited.to_vec();
-    new_path.push(cave);
-    if cave == "end" {
-        return vec![new_path];
-    }
-
-    let edges = graph.get(cave).unwrap();
-
-    edges.iter().for_each(|e| {
-        if *e != "start" && (!visited.contains(e) || !is_lower(e)) {
-            let tmp_path = find_paths_one(graph, e, &new_path);
-            paths.extend(tmp_path);
-        }
-    });
-    paths
-}
-
-fn contains_duplicate(path: &[&str]) -> bool {
+fn contains_duplicate_small(path: &[&str]) -> bool {
     let mut visited = Vec::new();
     for s in path.iter().filter(|n| is_lower(n)).collect::<Vec<&&str>>() {
         if visited.contains(&s) {
@@ -55,43 +32,87 @@ fn contains_duplicate(path: &[&str]) -> bool {
     false
 }
 
-fn find_paths_two<'a>(
-    graph: &'a HashMap<&'a str, Vec<&'a str>>,
-    cave: &'a str,
-    visited: &[&'a str],
-) -> Vec<Vec<&'a str>> {
-    let mut paths = Vec::new();
-    let mut new_path = visited.to_vec();
-    new_path.push(cave);
+fn find_paths(
+    graph: &HashMap<&str, Vec<&str>>,
+    cave: &str,
+    visited: &[&str],
+    visited_small: bool,
+) -> i32 {
+    let mut path_count = 0;
+    let mut path = visited.to_vec();
+    path.push(cave);
 
     if cave == "end" {
-        return vec![new_path];
+        return 1;
     }
-    let contains_dup = contains_duplicate(&new_path);
+
+    let contains_dup = if !visited_small {
+        contains_duplicate_small(&path)
+    } else {
+        visited_small
+    };
+
     let edges = graph.get(cave).unwrap();
     edges.iter().for_each(|e| {
-        if *e != "start" && (!is_lower(e) || (!contains_dup || !new_path.contains(e))) {
-            let tmp_path = find_paths_two(graph, e, &new_path);
-            paths.extend(tmp_path);
+        if *e != "start" && (!is_lower(e) || (!contains_dup || !path.contains(e))) {
+            path_count += find_paths(graph, e, &path, contains_dup);
         }
     });
 
-    paths
+    path_count
 }
 
 fn main() {
     let contents = fs::read_to_string("input.txt").expect("Something went wrong reading the file");
     let adj_list = build_adj_list(parse_input(&contents));
 
-    println!(
-        "Part one paths: {:?}",
-        find_paths_one(&adj_list, "start", &[]).len()
-    );
     let now = Instant::now();
     println!(
-        "Part two paths: {:?}",
-        find_paths_two(&adj_list, "start", &[]).len()
+        "Part one paths: {:?}",
+        find_paths(&adj_list, "start", &[], true)
     );
-    // Part two runs in 1.8 seconds
-    println!("Part two timer: {}ms", now.elapsed().as_millis());
+    println!(
+        "Part two paths: {:?}",
+        find_paths(&adj_list, "start", &[], false)
+    );
+
+    println!("Timer: {}ms", now.elapsed().as_millis()); // 0.8s
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn part_one() {
+        let input = "\
+dc-end
+HN-start
+start-kj
+dc-start
+dc-HN
+LN-dc
+HN-end
+kj-sa
+kj-HN
+kj-dc";
+
+        let adj_list = build_adj_list(parse_input(input));
+        assert_eq!(find_paths(&adj_list, "start", &[], true), 19);
+    }
+
+    #[test]
+    fn part_two() {
+        let input = "\
+start-A
+start-b
+A-c
+A-b
+b-d
+A-end
+b-end";
+
+        let adj_list = build_adj_list(parse_input(input));
+        assert_eq!(find_paths(&adj_list, "start", &[], false), 36);
+    }
 }
