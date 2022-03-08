@@ -1,28 +1,9 @@
 use arrayvec::ArrayVec;
-use std::cmp::Ordering;
-use std::collections::BinaryHeap;
+use std::collections::BTreeMap;
 use std::fs;
 use std::time::Instant;
 
-#[derive(Copy, Clone, Eq, PartialEq)]
-struct State {
-    cost: u16,
-    position: Point,
-}
-impl Ord for State {
-    fn cmp(&self, other: &Self) -> Ordering {
-        other
-            .cost
-            .cmp(&self.cost)
-            .then_with(|| self.position.cmp(&other.position))
-    }
-}
-impl PartialOrd for State {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-#[derive(Clone, Copy, PartialEq, Eq, Ord, PartialOrd)]
+#[derive(PartialEq)]
 struct Point {
     x: usize,
     y: usize,
@@ -69,39 +50,37 @@ fn find_neighbours(p: Point, size: usize) -> ArrayVec<Point, 4> {
 }
 
 fn dijkstra<const SIZE: usize>(matrix: &Vec<Vec<u8>>) -> Option<u16> {
-    let start = Point { x: 0, y: 0 };
-    let end = Point {
-        x: matrix[0].len() - 1,
-        y: matrix.len() - 1,
-    };
+    let start = Point::new(0, 0);
+    let end = Point::new(matrix[0].len() - 1, matrix.len() - 1);
 
     let mut dist = [[u16::MAX; SIZE]; SIZE];
-    let mut heap = BinaryHeap::new();
+    let mut fringe: BTreeMap<u16, Vec<Point>> = BTreeMap::new();
 
     dist[start.x][start.y] = 0;
-    heap.push(State {
-        cost: 0,
-        position: start,
-    });
+    fringe.insert(0, vec![start]);
 
-    while let Some(State { cost, position }) = heap.pop() {
-        if position == end {
-            return Some(cost);
-        }
+    while let Some(&cost) = fringe.keys().next() {
+        let nodes = fringe.remove(&cost).unwrap();
 
-        if cost > dist[position.x][position.y] {
-            continue;
-        }
+        for current in nodes.into_iter() {
+            if current == end {
+                return Some(cost);
+            }
 
-        for Point { x, y } in find_neighbours(position, SIZE) {
-            let next = State {
-                cost: cost + matrix[x][y] as u16,
-                position: Point { x, y },
-            };
+            if cost > dist[current.x][current.y] {
+                continue;
+            }
 
-            if next.cost < dist[x][y] {
-                heap.push(next);
-                dist[x][y] = next.cost;
+            for p in find_neighbours(current, SIZE) {
+                let cost = cost + matrix[p.x][p.y] as u16;
+
+                if cost < dist[p.x][p.y] {
+                    dist[p.x][p.y] = cost;
+                    let path = fringe
+                        .entry(cost)
+                        .or_insert_with(|| Vec::with_capacity(SIZE / 2));
+                    path.push(p);
+                }
             }
         }
     }
@@ -172,5 +151,5 @@ fn main() {
         "Part two: {:?}",
         dijkstra::<{ 5 * GRID_SIZE }>(&expand_matrix(&parse_input(&contents)))
     );
-    println!("time: {}", now.elapsed().as_millis()); // 270ms
+    println!("time: {}", now.elapsed().as_millis()); // 170ms
 }
