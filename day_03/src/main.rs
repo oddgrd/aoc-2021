@@ -1,96 +1,100 @@
-use std::fs;
+use std::str;
+use std::{fs, time::Instant};
 
-fn parse_input(contents: &str) -> Vec<Vec<char>> {
-    contents
-        .lines()
-        .map(|line| line.chars().collect())
-        .collect()
+const BITS: usize = 12;
+fn main() {
+    let contents = fs::read_to_string("input.txt").expect("Something went wrong reading the file");
+
+    let now = Instant::now();
+    let parsed_input = parse_input(&contents);
+
+    let part_one = power_consumption(&parsed_input);
+    let part_two = life_support_rating(&parsed_input);
+
+    let time = now.elapsed().as_micros();
+
+    println!(
+        "Part one: {}\nPart two: {}\nTime: {} μs",
+        part_one, part_two, time
+    );
 }
 
-fn binary_to_decimal(binary: String) -> u32 {
-    u32::from_str_radix(&binary, 2).unwrap()
+fn parse_input(contents: &str) -> Vec<u32> {
+    contents.lines().map(binary_to_decimal).collect()
 }
 
-fn find_most_common_bit(column: &str) -> char {
-    let count_0 = column.matches('0').count();
-    let count_1 = column.matches('1').count();
-    if count_0 > count_1 {
-        '0'
-    } else {
-        '1'
+fn binary_to_decimal(binary: &str) -> u32 {
+    u32::from_str_radix(binary, 2).unwrap()
+}
+
+/// Counts set bits at given index of each number in given input
+/// ```
+/// // Returns 1 if bit is set and 0 if not
+/// (num >> index) & 1
+/// ```
+fn count_set_bits_in_column(input: &[u32], index: usize) -> usize {
+    input.iter().filter(|&num| (num >> index) & 1 == 1).count()
+}
+
+fn power_consumption(input: &[u32]) -> u32 {
+    let mut most_common_bits = [0; BITS];
+    for (i, bit) in most_common_bits.iter_mut().rev().enumerate() {
+        // Cast bool to int (0 or 1)
+        *bit = (count_set_bits_in_column(input, i) * 2 < input.len()) as u8;
     }
-}
 
-fn find_most_common_bits(input: &[Vec<char>]) -> Vec<char> {
-    let mut most_common_bits = vec!['0'; input[0].len()];
-    let mut columns = vec![String::new(); input[0].len()];
-    for row in input {
-        for i in 0..row.len() {
-            columns[i].push(row[i]);
-        }
-    }
-    for i in 0..columns.len() {
-        most_common_bits[i] = find_most_common_bit(&columns[i]);
-    }
-    most_common_bits
-}
-
-fn power_consumption(input: Vec<Vec<char>>) -> u32 {
-    let most_common_bits = find_most_common_bits(&input);
-
-    let most_common = binary_to_decimal(most_common_bits.iter().collect());
-    let least_common = binary_to_decimal(
-        most_common_bits
+    let most_common = binary_to_decimal(
+        &most_common_bits
             .iter()
-            .map(|&bit| if bit == '0' { '1' } else { '0' })
-            .collect(),
+            .map(|bit| bit.to_string())
+            .collect::<String>(),
+    );
+    let least_common = binary_to_decimal(
+        &most_common_bits
+            .iter()
+            .map(|bit| (1 - bit).to_string())
+            .collect::<String>(),
     );
 
     most_common * least_common
 }
 
-enum LifeSupport {
-    O2,
-    CO2,
-}
-fn life_support_rating(input: Vec<Vec<char>>, mut i: usize, system: LifeSupport) -> u32 {
-    if input.len() == 1 {
-        return binary_to_decimal(input[0].iter().collect());
-    }
+fn life_support_rating(input: &[u32]) -> u32 {
+    let (mut o2, mut co2) = (0, 0);
 
-    let most_common_bits = find_most_common_bits(&input);
-    let mut selected: Vec<Vec<char>> = Vec::new();
+    let mut selected_rows = input.to_vec();
+    for i in (0..BITS).rev() {
+        let most_common_bit =
+            (count_set_bits_in_column(&selected_rows, i) * 2 >= selected_rows.len()) as u32;
 
-    match system {
-        LifeSupport::O2 => {
-            for row in input {
-                if row[i] == most_common_bits[i] {
-                    selected.push(row);
-                }
-            }
-        }
-        LifeSupport::CO2 => {
-            for row in input {
-                if row[i] != most_common_bits[i] {
-                    selected.push(row);
-                }
-            }
+        selected_rows.retain(|num| (num >> i) & 1 == most_common_bit);
+
+        if selected_rows.len() == 1 {
+            o2 = selected_rows[0];
         }
     }
-    i += 1;
-    life_support_rating(selected, i, system)
+
+    let mut selected_rows = input.to_vec();
+    for i in (0..BITS).rev() {
+        let most_common_bit =
+            (count_set_bits_in_column(&selected_rows, i) * 2 < selected_rows.len()) as u32;
+
+        selected_rows.retain(|num| (num >> i) & 1 == most_common_bit);
+
+        if selected_rows.len() == 1 {
+            co2 = selected_rows[0];
+        }
+    }
+
+    o2 * co2
 }
 
-fn main() {
-    let contents = fs::read_to_string("input.txt").expect("Something went wrong reading the file");
+#[cfg(test)]
+mod tests {
+    use super::binary_to_decimal;
 
-    println!(
-        "Power consumption: {:?}",
-        (power_consumption(parse_input(&contents)))
-    );
-    println!(
-        "Life support rating: {}",
-        (life_support_rating(parse_input(&contents), 0, LifeSupport::O2)
-            * life_support_rating(parse_input(&contents), 0, LifeSupport::CO2))
-    );
+    #[test]
+    fn binary_to_decimal_works() {
+        assert_eq!(binary_to_decimal("110110101101"), 3501);
+    }
 }
