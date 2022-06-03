@@ -1,163 +1,131 @@
-use std::fs;
+use std::{fs, time::Instant};
 
-fn parse_input(contents: &str) -> (Vec<&str>, Vec<u32>) {
-    let lines: Vec<&str> = contents.lines().collect();
-    let mut selection: Vec<u32> = Vec::new();
-    let mut boards = Vec::new();
-    lines.iter().for_each(|line| {
-        if line.len() > 14 {
-            selection = line.split(',').map(|n| n.parse().unwrap()).collect();
-        } else {
-            boards.push(line.to_owned());
-        }
-    });
-    (boards, selection)
-}
-
-fn parse_boards(boards: Vec<&str>) -> Vec<Vec<Vec<u32>>> {
-    let mut boards_vec: Vec<Vec<Vec<u32>>> = Vec::new();
-    let mut temp: Vec<Vec<u32>> = Vec::new();
-    boards.iter().for_each(|line| {
-        if !line.is_empty() {
-            temp.push(
-                line.split_whitespace()
-                    .map(|n| n.parse().unwrap())
-                    .collect(),
-            )
-        }
-        if temp.len() == 5 {
-            boards_vec.push(temp.clone());
-            temp = Vec::new();
-        }
-    });
-    boards_vec
-}
-
-fn sum_selected(vertical: &mut Vec<u32>, horizontal: &mut Vec<u32>, board: Vec<&u32>) -> u32 {
-    let selected = vertical;
-    selected.append(horizontal);
-
-    board
-        .iter()
-        .map(|num| num.to_owned())
-        .filter(|num| !selected.contains(num))
-        .sum()
-}
-fn bingo_first_winner(selection: &[u32], boards: Vec<Vec<Vec<u32>>>) -> u32 {
-    let mut horizontal: Vec<Vec<Vec<u32>>> = vec![vec![Vec::new(); 5]; boards.len()];
-    let mut vertical: Vec<Vec<Vec<u32>>> = vec![vec![Vec::new(); 5]; boards.len()];
-
-    let mut winning_board_idx: usize = 0;
-    let mut winner: Vec<u32> = Vec::new();
-    let mut idx = 0;
-    loop {
-        if !winner.is_empty() {
-            break;
-        }
-
-        for i in 0..boards.len() {
-            for j in 0..5 {
-                for k in 0..5 {
-                    if boards[i][j][k] == selection[idx] {
-                        horizontal[i][j].push(selection[idx]);
-                        vertical[i][k].push(selection[idx]);
-                        if horizontal[i][j].len() == 5 {
-                            winning_board_idx = i;
-                            winner = horizontal[i][j].to_vec();
-                        }
-                        if vertical[i][k].len() == 5 {
-                            winning_board_idx = i;
-                            winner = vertical[i][k].to_vec();
-                        }
-                    }
-                }
-            }
-        }
-        idx += 1;
-    }
-
-    let selected_sum = sum_selected(
-        &mut vertical[winning_board_idx]
-            .iter()
-            .flatten()
-            .map(|n| n.to_owned())
-            .collect(),
-        &mut horizontal[winning_board_idx]
-            .iter()
-            .flatten()
-            .map(|n| n.to_owned())
-            .collect(),
-        boards[winning_board_idx].iter().flatten().collect(),
-    );
-
-    winner[winner.len() - 1] * selected_sum
-}
-
-fn bingo_last_winner(selection: &[u32], boards: Vec<Vec<Vec<u32>>>) -> u32 {
-    let mut horizontal: Vec<Vec<Vec<u32>>> = vec![vec![Vec::new(); 5]; boards.len()];
-    let mut vertical: Vec<Vec<Vec<u32>>> = vec![vec![Vec::new(); 5]; boards.len()];
-
-    let mut winners: Vec<usize> = Vec::new();
-    let mut last_bingo: Vec<u32> = Vec::new();
-    let mut idx = 0;
-    loop {
-        if winners.len() == 100 {
-            break;
-        }
-        for i in 0..boards.len() {
-            for j in 0..5 {
-                for k in 0..5 {
-                    if boards[i][j][k] == selection[idx] {
-                        horizontal[i][j].push(selection[idx]);
-                        vertical[i][k].push(selection[idx]);
-
-                        if horizontal[i][j].len() == 5 && !winners.contains(&i) {
-                            winners.push(i);
-                            last_bingo = horizontal[i][j].to_vec();
-                        }
-                        if vertical[i][k].len() == 5 && !winners.contains(&i) {
-                            winners.push(i);
-                            last_bingo = vertical[i][k].to_vec();
-                        }
-                    }
-                }
-            }
-        }
-        idx += 1;
-    }
-
-    let last_winner_idx = winners[winners.len() - 1];
-    let selected_sum = sum_selected(
-        &mut vertical[last_winner_idx]
-            .iter()
-            .flatten()
-            .map(|n| n.to_owned())
-            .collect(),
-        &mut horizontal[last_winner_idx]
-            .iter()
-            .flatten()
-            .map(|n| n.to_owned())
-            .collect(),
-        boards[last_winner_idx].iter().flatten().collect(),
-    );
-
-    last_bingo[last_bingo.len() - 1] * selected_sum
-}
+/// Used to mark drawn numbers, all board numbers are < 100.
+const DRAWN: u32 = 100;
+type Board = [[u32; 5]; 5];
 
 fn main() {
     let contents = fs::read_to_string("input.txt").expect("Something went wrong reading the file");
+
+    let now = Instant::now();
+    let parsed_input = parse_input(&contents);
+
+    let part_one = bingo_first_winner(&parsed_input.0, &parsed_input.1);
+    let part_two = bingo_last_winner(&parsed_input.0, &parsed_input.1);
+    let time = now.elapsed().as_micros();
+
     println!(
-        "First winner: {:?}",
-        bingo_first_winner(
-            &parse_input(&contents).1,
-            parse_boards(parse_input(&contents).0)
-        )
+        "Part one: {}\nPart two: {}\nTime: {} μs",
+        part_one, part_two, time
     );
-    println!(
-        "Last winner: {:?}",
-        bingo_last_winner(
-            &parse_input(&contents).1,
-            parse_boards(parse_input(&contents).0)
-        )
-    );
+}
+
+fn parse_input(contents: &str) -> (Vec<u32>, Vec<Board>) {
+    let mut lines = contents.lines();
+    let selection: Vec<u32> = lines
+        .next()
+        .unwrap()
+        .split(',')
+        .map(|n| n.parse().unwrap())
+        .collect();
+
+    let mut board: Board = [[0; 5]; 5];
+    let mut i = 0;
+    let boards = lines.fold(Vec::new(), |mut boards, line| {
+        if !line.is_empty() {
+            line.split_whitespace()
+                .enumerate()
+                .for_each(|(j, num)| board[i][j] = num.parse().unwrap());
+            i += 1;
+        }
+        if i == 5 {
+            boards.push(board);
+            board = [[0; 5]; 5];
+            i = 0;
+        }
+        boards
+    });
+    (selection, boards)
+}
+
+fn check_column(board: &Board, index: usize) -> bool {
+    let column = board
+        .iter()
+        .enumerate()
+        .fold([0; 5], |mut column, (i, row)| {
+            column[i] = row[index];
+            column
+        });
+    column.iter().all(|&num| num == DRAWN)
+}
+
+fn bingo_first_winner(selection: &[u32], boards: &[Board]) -> u32 {
+    let mut b = boards.to_vec();
+
+    let winning_board_idx: usize;
+
+    let mut idx = 0;
+    'outer: loop {
+        for i in 0..boards.len() {
+            for j in 0..5 {
+                for k in 0..5 {
+                    if boards[i][j][k] == selection[idx] {
+                        b[i][j][k] = DRAWN;
+                        if b[i][j].iter().all(|&num| num == DRAWN) || check_column(&b[i], k) {
+                            // Bingo
+                            winning_board_idx = i;
+                            break 'outer;
+                        }
+                    }
+                }
+            }
+        }
+        idx += 1;
+    }
+
+    let sum_undrawn: u32 = b[winning_board_idx]
+        .iter()
+        .flatten()
+        .filter(|&n| *n != DRAWN)
+        .sum();
+
+    selection[idx] * sum_undrawn
+}
+
+fn bingo_last_winner(selection: &[u32], boards: &[Board]) -> u32 {
+    let mut b = boards.to_vec();
+    let mut last_winning_board = b[0];
+
+    let mut idx = 0;
+    loop {
+        b.retain_mut(|board| {
+            for i in 0..5 {
+                for j in 0..5 {
+                    if board[i][j] == selection[idx] {
+                        board[i][j] = DRAWN;
+                        if board[i].iter().all(|&num| num == DRAWN) || check_column(board, j) {
+                            // Bingo, drop board
+                            last_winning_board = *board;
+                            return false;
+                        }
+                    }
+                }
+            }
+            // Not bingo, keep board
+            true
+        });
+
+        if b.is_empty() {
+            break;
+        }
+        idx += 1;
+    }
+
+    let sum_undrawn: u32 = last_winning_board
+        .iter()
+        .flatten()
+        .filter(|&n| *n != DRAWN)
+        .sum();
+
+    selection[idx] * (sum_undrawn)
 }
