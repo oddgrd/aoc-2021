@@ -3,6 +3,22 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::time::Instant;
 
+fn main() {
+    let contents = fs::read_to_string("input.txt").expect("Something went wrong reading the file");
+
+    let now = Instant::now();
+    let parsed_input = parse_input(&contents);
+
+    let part_one = dijkstra::<GRID_SIZE>(&parsed_input);
+    let part_two = dijkstra::<{ 5 * GRID_SIZE }>(&expand_matrix(&parsed_input));
+    let time = now.elapsed().as_micros(); // 11ms
+
+    println!(
+        "Part one: {:?}\nPart two: {:?}\nTime: {} μs",
+        part_one, part_two, time
+    );
+}
+
 #[derive(PartialEq)]
 struct Point {
     x: usize,
@@ -137,19 +153,4 @@ fn expand_matrix(matrix: &[Vec<u8>]) -> Vec<Vec<u8>> {
             expanded.extend(expand_right(tile));
             expanded
         })
-}
-
-fn main() {
-    let contents = fs::read_to_string("input.txt").expect("Something went wrong reading the file");
-
-    let now = Instant::now();
-    println!(
-        "Part one: {:?}",
-        dijkstra::<GRID_SIZE>(&parse_input(&contents))
-    );
-    println!(
-        "Part two: {:?}",
-        dijkstra::<{ 5 * GRID_SIZE }>(&expand_matrix(&parse_input(&contents)))
-    );
-    println!("time: {}", now.elapsed().as_millis()); // 170ms
 }

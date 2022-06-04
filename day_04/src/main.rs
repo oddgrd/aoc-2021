@@ -12,7 +12,7 @@ fn main() {
 
     let part_one = bingo_first_winner(&parsed_input.0, &parsed_input.1);
     let part_two = bingo_last_winner(&parsed_input.0, &parsed_input.1);
-    let time = now.elapsed().as_micros();
+    let time = now.elapsed().as_micros(); // 170μs
 
     println!(
         "Part one: {}\nPart two: {}\nTime: {} μs",
@@ -60,18 +60,18 @@ fn check_column(board: &Board, index: usize) -> bool {
 }
 
 fn bingo_first_winner(selection: &[u32], boards: &[Board]) -> u32 {
-    let mut b = boards.to_vec();
+    let mut boards = boards.to_vec();
 
     let winning_board_idx: usize;
 
     let mut idx = 0;
     'outer: loop {
-        for i in 0..boards.len() {
+        for (i, board) in boards.iter_mut().enumerate() {
             for j in 0..5 {
                 for k in 0..5 {
-                    if boards[i][j][k] == selection[idx] {
-                        b[i][j][k] = DRAWN;
-                        if b[i][j].iter().all(|&num| num == DRAWN) || check_column(&b[i], k) {
+                    if board[j][k] == selection[idx] {
+                        board[j][k] = DRAWN;
+                        if board[j].iter().all(|&num| num == DRAWN) || check_column(board, k) {
                             // Bingo
                             winning_board_idx = i;
                             break 'outer;
@@ -83,22 +83,22 @@ fn bingo_first_winner(selection: &[u32], boards: &[Board]) -> u32 {
         idx += 1;
     }
 
-    let sum_undrawn: u32 = b[winning_board_idx]
-        .iter()
+    let sum_undrawn: u32 = boards[winning_board_idx]
+        .into_iter()
         .flatten()
-        .filter(|&n| *n != DRAWN)
+        .filter(|&n| n != DRAWN)
         .sum();
 
     selection[idx] * sum_undrawn
 }
 
 fn bingo_last_winner(selection: &[u32], boards: &[Board]) -> u32 {
-    let mut b = boards.to_vec();
-    let mut last_winning_board = b[0];
+    let mut boards = boards.to_vec();
+    let mut last_winning_board = boards[0];
 
     let mut idx = 0;
     loop {
-        b.retain_mut(|board| {
+        boards.retain_mut(|board| {
             for i in 0..5 {
                 for j in 0..5 {
                     if board[i][j] == selection[idx] {
@@ -115,16 +115,16 @@ fn bingo_last_winner(selection: &[u32], boards: &[Board]) -> u32 {
             true
         });
 
-        if b.is_empty() {
+        if boards.is_empty() {
             break;
         }
         idx += 1;
     }
 
     let sum_undrawn: u32 = last_winning_board
-        .iter()
+        .into_iter()
         .flatten()
-        .filter(|&n| *n != DRAWN)
+        .filter(|&n| n != DRAWN)
         .sum();
 
     selection[idx] * (sum_undrawn)
