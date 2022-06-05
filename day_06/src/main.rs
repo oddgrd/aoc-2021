@@ -8,7 +8,7 @@ fn main() {
 
     let part_one = simulate_lanternfish(&parsed_input, 80);
     let part_two = simulate_lanternfish(&parsed_input, 256);
-    let time = now.elapsed().as_micros(); // 6μs
+    let time = now.elapsed().as_micros(); // 5μs
 
     println!(
         "Part one: {}\nPart two: {}\nTime: {} μs",
