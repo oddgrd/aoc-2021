@@ -1,179 +1,164 @@
-use std::fs;
+use std::{fs, time::Instant};
 
-fn parse_input(input: &str) -> Vec<Vec<u32>> {
+fn main() {
+    let contents = fs::read_to_string("input.txt").expect("Something went wrong reading the file");
+
+    let now = Instant::now();
+    let parsed_input = parse_input(&contents);
+
+    let part_one = part_one(&parsed_input);
+    let part_two = part_two(&parsed_input);
+    let time = now.elapsed().as_micros(); // 8ms
+
+    println!(
+        "Part one: {}\nPart two: {}\nTime: {} μs",
+        part_one, part_two, time
+    );
+}
+
+fn parse_input(input: &str) -> Vec<Vec<Point>> {
     input
         .lines()
-        .map(|line| line.chars().map(|c| c.to_digit(10).unwrap()).collect())
+        .enumerate()
+        .map(|(i, line)| {
+            line.chars()
+                .enumerate()
+                .map(|(j, char)| Point {
+                    x: i,
+                    y: j,
+                    value: char.to_digit(10).unwrap(),
+                })
+                .collect()
+        })
         .collect()
 }
 
-#[derive(Debug, Default)]
+/// A point on the heightmap of the cave
+#[derive(Debug, PartialEq, Clone, Copy)]
 struct Point {
     x: usize,
     y: usize,
     value: u32,
-    neighbours: Vec<u32>,
-}
-impl Point {
-    fn is_lowest(&self) -> bool {
-        self.value < *self.neighbours.iter().min().unwrap()
-    }
-    fn risk_level(&self) -> u32 {
-        self.value + 1
-    }
 }
 
-fn find_neigbours(row: usize, col: usize, matrix: &[Vec<u32>]) -> Vec<u32> {
-    let mut neighbours = Vec::new();
-    //top
-    if row > 0 {
-        neighbours.push(matrix[row - 1][col]);
-    }
-    //top left
-    if row > 0 && col > 0 {
-        neighbours.push(matrix[row - 1][col - 1]);
-    }
-    //top right
-    if row > 0 && col + 1 < matrix[row].len() {
-        neighbours.push(matrix[row - 1][col + 1]);
-    }
-    //left
-    if col > 0 {
-        neighbours.push(matrix[row][col - 1]);
-    }
-    //right
-    if col + 1 < matrix[row].len() {
-        neighbours.push(matrix[row][col + 1]);
-    }
-    //bottom left
-    if row + 1 < matrix.len() && col > 0 {
-        neighbours.push(matrix[row + 1][col - 1]);
-    }
-    //bottom right
-    if row + 1 < matrix.len() && col + 1 < matrix[row].len() {
-        neighbours.push(matrix[row + 1][col + 1]);
-    }
-    //bottom
-    if row + 1 < matrix.len() {
-        neighbours.push(matrix[row + 1][col]);
-    }
-    neighbours
-}
-
-fn part_one(input: Vec<Vec<u32>>) -> u32 {
+/// The sum of the risk levels of all low points on the map
+fn part_one(input: &[Vec<Point>]) -> u32 {
     let mut total = 0;
-    for x in 0..input.len() {
-        for y in 0..input[x].len() {
-            let point = Point {
-                value: input[x][y],
-                neighbours: find_neigbours(x, y, &input),
-                ..Default::default()
-            };
-            if point.is_lowest() {
-                total += point.risk_level();
+    for row in input {
+        for point in row {
+            let lowest_neighbor = find_neighbors(point, input).into_iter().min().unwrap();
+
+            if point.value < lowest_neighbor {
+                total += point.value + 1
             }
         }
     }
     total
 }
 
-fn expand_basin(row: usize, col: usize, matrix: &[Vec<u32>]) -> Vec<(usize, usize)> {
-    let mut basin: Vec<(usize, usize)> = Vec::new();
-    //top
-    if row > 0 {
-        let mut i: usize = 1;
-        while row >= i && matrix[row - i][col] < 9 {
-            basin.push((row - i, col));
-            i += 1;
+/// Find the product of the three biggest basins
+fn part_two(input: &[Vec<Point>]) -> usize {
+    let mut lowest_points: Vec<Vec<Point>> = Vec::new();
+    for row in input {
+        for point in row {
+            let lowest_neighbor = find_neighbors(point, input).into_iter().min().unwrap();
+
+            if point.value < lowest_neighbor {
+                lowest_points.push(vec![*point])
+            }
         }
     }
-    //left
-    if col > 0 {
-        let mut i: usize = 1;
-        while col >= i && matrix[row][col - i] < 9 {
-            basin.push((row, col - i));
-            i += 1;
-        }
-    }
-    //right
-    if col + 1 < matrix[row].len() {
-        let mut i: usize = 1;
-        while col + i < matrix[row].len() && matrix[row][col + i] < 9 {
-            basin.push((row, col + i));
-            i += 1;
-        }
-    }
-    //bottom
-    if row + 1 < matrix.len() {
-        let mut i: usize = 1;
-        while row + i < matrix.len() && matrix[row + i][col] < 9 {
-            basin.push((row + i, col));
-            i += 1;
-        }
-    }
-    basin
+
+    // Search for higher neighbors until there are none, collect basin sizes
+    let mut basin_sizes: Vec<usize> = lowest_points.iter().fold(
+        Vec::with_capacity(lowest_points.len()),
+        |mut basins, basin| {
+            let mut current_basin = search_higher(basin, input);
+
+            basins.push(loop {
+                if search_higher(&current_basin, input).len() == current_basin.len() {
+                    // no higher neighbors, return basin size
+                    break current_basin.len();
+                } else {
+                    current_basin = search_higher(&current_basin, input);
+                }
+            });
+
+            basins
+        },
+    );
+
+    // return product of three biggest basins
+    basin_sizes.sort_unstable();
+    basin_sizes[basin_sizes.len() - 3..].iter().product()
 }
 
-fn go_deeper(seed: &[(usize, usize)], matrix: &[Vec<u32>]) -> Vec<(usize, usize)> {
-    let mut copy = seed.to_owned();
-    for (x, y) in seed {
-        for z in expand_basin(*x, *y, matrix) {
-            if !copy.contains(&z) {
-                copy.push(z);
+fn find_neighbors(p: &Point, grid: &[Vec<Point>]) -> Vec<u32> {
+    let mut neighbor_values = Vec::with_capacity(4);
+    //top
+    if p.x > 0 {
+        neighbor_values.push(grid[p.x - 1][p.y].value);
+    }
+    //left
+    if p.y > 0 {
+        neighbor_values.push(grid[p.x][p.y - 1].value);
+    }
+    //right
+    if p.y + 1 < grid[p.x].len() {
+        neighbor_values.push(grid[p.x][p.y + 1].value);
+    }
+    //bottom
+    if p.x + 1 < grid.len() {
+        neighbor_values.push(grid[p.x + 1][p.y].value);
+    }
+    neighbor_values
+}
+
+fn search_higher(basin: &[Point], grid: &[Vec<Point>]) -> Vec<Point> {
+    let mut copy = basin.to_vec();
+    for point in basin {
+        for neighbor in find_higher_neighbors(point.x, point.y, grid) {
+            if !copy.contains(&neighbor) {
+                copy.push(neighbor);
             }
         }
     }
     copy
 }
 
-fn multiply_biggest_basins(lengths: Vec<usize>) -> usize {
-    let mut sorted = lengths;
-    sorted.sort_unstable();
-    let len = sorted.len();
-    sorted[len - 1] * sorted[len - 2] * sorted[len - 3]
-}
-
-fn part_two(input: Vec<Vec<u32>>) -> usize {
-    let mut lowest_points: Vec<Point> = Vec::new();
-    for x in 0..input.len() {
-        for y in 0..input[x].len() {
-            let point = Point {
-                x,
-                y,
-                value: input[x][y],
-                neighbours: find_neigbours(x, y, &input),
-            };
-            if point.is_lowest() {
-                lowest_points.push(point);
-            }
+fn find_higher_neighbors(row: usize, col: usize, grid: &[Vec<Point>]) -> Vec<Point> {
+    let mut basin: Vec<Point> = Vec::with_capacity(4);
+    //top
+    if row > 0 {
+        let mut i: usize = 1;
+        while row >= i && grid[row - i][col].value < 9 {
+            basin.push(grid[row - i][col]);
+            i += 1;
         }
     }
-
-    let seed: Vec<Vec<(usize, usize)>> = lowest_points.iter().map(|p| vec![(p.x, p.y)]).collect();
-    let basins: Vec<Vec<(usize, usize)>> = seed
-        .iter()
-        .map(|basin| {
-            let mut prev = go_deeper(basin, &input);
-
-            loop {
-                if go_deeper(&prev, &input).len() == prev.len() {
-                    break prev;
-                } else {
-                    prev = go_deeper(&prev, &input);
-                }
-            }
-        })
-        .collect();
-
-    multiply_biggest_basins(basins.iter().map(|b| b.len()).collect::<Vec<usize>>())
-}
-
-fn main() {
-    let contents = fs::read_to_string("input.txt").expect("Something went wrong reading the file");
-
-    println!("Sum of risk levels: {:?}", part_one(parse_input(&contents)));
-    println!(
-        "Product of three largest basin sizes {:?}",
-        part_two(parse_input(&contents))
-    );
+    //left
+    if col > 0 {
+        let mut i: usize = 1;
+        while col >= i && grid[row][col - i].value < 9 {
+            basin.push(grid[row][col - i]);
+            i += 1;
+        }
+    }
+    //right
+    if col + 1 < grid[row].len() {
+        let mut i: usize = 1;
+        while col + i < grid[row].len() && grid[row][col + i].value < 9 {
+            basin.push(grid[row][col + i]);
+            i += 1;
+        }
+    }
+    //bottom
+    if row + 1 < grid.len() {
+        let mut i: usize = 1;
+        while row + i < grid.len() && grid[row + i][col].value < 9 {
+            basin.push(grid[row + i][col]);
+            i += 1;
+        }
+    }
+    basin
 }
