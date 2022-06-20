@@ -2,8 +2,22 @@ use std::collections::HashMap;
 use std::fs;
 use std::time::Instant;
 
+fn main() {
+    let contents = fs::read_to_string("input.txt").expect("Something went wrong reading the file");
+
+    let now = Instant::now();
+
+    let (part_one, part_two) = extend_polymer(parse_input(&contents));
+    let time = now.elapsed().as_micros(); // 669µs
+
+    println!(
+        "Part one: {}\nPart two: {}\nTime: {} μs",
+        part_one, part_two, time
+    );
+}
+
 fn parse_input(input: &str) -> (Vec<char>, HashMap<String, char>) {
-    let (template, insertion_rules) = input.split_once("\r\n").unwrap();
+    let (template, insertion_rules) = input.split_once("\n\n").unwrap();
 
     (
         template.chars().collect(),
@@ -29,7 +43,7 @@ fn count_initial_pairs(template: Vec<char>) -> HashMap<String, u64> {
     initial_pairs
 }
 
-fn count_elements(pairs: HashMap<String, u64>) -> u64 {
+fn count_elements(pairs: &HashMap<String, u64>) -> u64 {
     let mut counts = HashMap::new();
     pairs.iter().for_each(|(k, v)| {
         let counter = counts.entry(k.chars().next().unwrap()).or_insert(0u64);
@@ -39,8 +53,9 @@ fn count_elements(pairs: HashMap<String, u64>) -> u64 {
     counts.values().max().unwrap() - counts.values().min().unwrap() + 1
 }
 
-fn extend_polymer((template, rules): (Vec<char>, HashMap<String, char>)) -> u64 {
+fn extend_polymer((template, rules): (Vec<char>, HashMap<String, char>)) -> (u64, u64) {
     let mut pairs: HashMap<String, u64> = count_initial_pairs(template);
+    let mut part_one_score = 0;
 
     let mut steps = 0;
     loop {
@@ -71,16 +86,11 @@ fn extend_polymer((template, rules): (Vec<char>, HashMap<String, char>)) -> u64 
         pairs = updated_pairs;
 
         steps += 1;
+        if steps == 10 {
+            part_one_score = count_elements(&pairs);
+        }
         if steps == 40 {
-            break count_elements(pairs);
+            break (part_one_score, count_elements(&pairs));
         }
     }
-}
-
-fn main() {
-    let contents = fs::read_to_string("input.txt").expect("Something went wrong reading the file");
-    let now = Instant::now();
-    println!("{:?}", extend_polymer(parse_input(&contents)));
-    // 9ms
-    println!("time: {}", now.elapsed().as_millis());
 }

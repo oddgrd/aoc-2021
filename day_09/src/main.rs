@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::{fs, time::Instant};
 
 fn main() {
@@ -8,7 +9,7 @@ fn main() {
 
     let part_one = part_one(&parsed_input);
     let part_two = part_two(&parsed_input);
-    let time = now.elapsed().as_micros(); // 8ms
+    let time = now.elapsed().as_micros(); // 7ms
 
     println!(
         "Part one: {}\nPart two: {}\nTime: {} μs",
@@ -34,7 +35,7 @@ fn parse_input(input: &str) -> Vec<Vec<Point>> {
 }
 
 /// A point on the heightmap of the cave
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Eq, PartialEq, Hash, Clone, Copy)]
 struct Point {
     x: usize,
     y: usize,
@@ -58,13 +59,13 @@ fn part_one(input: &[Vec<Point>]) -> u32 {
 
 /// Find the product of the three biggest basins
 fn part_two(input: &[Vec<Point>]) -> usize {
-    let mut lowest_points: Vec<Vec<Point>> = Vec::new();
+    let mut lowest_points: Vec<HashSet<Point>> = Vec::new();
     for row in input {
         for point in row {
             let lowest_neighbor = find_neighbors(point, input).into_iter().min().unwrap();
 
             if point.value < lowest_neighbor {
-                lowest_points.push(vec![*point])
+                lowest_points.push(HashSet::from([*point]))
             }
         }
     }
@@ -114,16 +115,14 @@ fn find_neighbors(p: &Point, grid: &[Vec<Point>]) -> Vec<u32> {
     neighbor_values
 }
 
-fn search_higher(basin: &[Point], grid: &[Vec<Point>]) -> Vec<Point> {
-    let mut copy = basin.to_vec();
+fn search_higher(basin: &HashSet<Point>, grid: &[Vec<Point>]) -> HashSet<Point> {
+    let mut expanded_basin = basin.clone();
     for point in basin {
         for neighbor in find_higher_neighbors(point.x, point.y, grid) {
-            if !copy.contains(&neighbor) {
-                copy.push(neighbor);
-            }
+            expanded_basin.insert(neighbor);
         }
     }
-    copy
+    expanded_basin
 }
 
 fn find_higher_neighbors(row: usize, col: usize, grid: &[Vec<Point>]) -> Vec<Point> {
