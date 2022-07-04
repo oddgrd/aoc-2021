@@ -1,12 +1,34 @@
-use std::fs;
+use std::{fs, time::Instant};
+
+fn main() {
+    let contents = fs::read_to_string("input.txt").expect("Something went wrong reading the file");
+
+    let now = Instant::now();
+    let part_one = build_board(calculate_folds(parse_input(&contents), Some(1)))
+        .iter()
+        .flatten()
+        .filter(|&p| *p == '#')
+        .count();
+
+    let part_two = build_board(calculate_folds(parse_input(&contents), None));
+    let time = now.elapsed().as_micros(); // 732µs
+
+    println!("Part one: {}", part_one);
+    println!("Part two:");
+    part_two.iter().for_each(|line| println!("{:?}", line));
+    println!("Time: {}µs", time);
+}
+
+type DotCoordinate = (i32, i32);
+type BoardDimensions = (usize, usize);
 
 enum Fold {
     Left(usize),
     Up(usize),
 }
-type Dot = (i32, i32);
-fn parse_input(input: &str) -> (Vec<Dot>, Vec<Fold>) {
-    let (dots, folds) = input.split_once("\n\r").unwrap();
+
+fn parse_input(input: &str) -> (Vec<DotCoordinate>, Vec<Fold>) {
+    let (dots, folds) = input.split_once("\n\n").unwrap();
     (
         dots.lines()
             .map(|line| {
@@ -18,9 +40,9 @@ fn parse_input(input: &str) -> (Vec<Dot>, Vec<Fold>) {
             .trim()
             .lines()
             .map(|line| {
-                let (ch, num) = line[11..line.len()].split_once('=').unwrap();
+                let (char, num) = line[11..line.len()].split_once('=').unwrap();
 
-                if ch == "x" {
+                if char == "x" {
                     Fold::Left(num.parse().unwrap())
                 } else {
                     Fold::Up(num.parse().unwrap())
@@ -30,54 +52,37 @@ fn parse_input(input: &str) -> (Vec<Dot>, Vec<Fold>) {
     )
 }
 
-// This is needed for part one
-fn initial_size(folds: &[Fold]) -> (usize, usize) {
+/// The initial size is twice as big as the first fold instruction
+fn initial_size(folds: &[Fold]) -> BoardDimensions {
     folds.iter().fold((0, 0), |sizes, fold| match fold {
-        Fold::Left(x) => {
-            if x > &sizes.0 {
-                (x * 2, sizes.1)
-            } else {
-                sizes
-            }
-        }
-        Fold::Up(y) => {
-            if y > &sizes.1 {
-                (sizes.0, y * 2)
-            } else {
-                sizes
-            }
-        }
+        Fold::Left(x) => (x * 2, sizes.1),
+        Fold::Up(y) => (sizes.0, y * 2),
     })
 }
 
 fn calculate_folds(
-    input: (Vec<Dot>, Vec<Fold>),
+    input: (Vec<DotCoordinate>, Vec<Fold>),
     limit: Option<usize>,
-) -> (Vec<Dot>, (usize, usize)) {
+) -> (Vec<DotCoordinate>, BoardDimensions) {
     let (mut dots, folds) = input;
-    let (mut width, mut height) = initial_size(&folds);
-
-    assert!(
-        limit < Some(folds.len() + 1),
-        "Limit is higher than length of folds"
-    );
+    let (mut width, mut height) = initial_size(&folds[0..2]);
 
     let mut i = 0;
     loop {
         match folds[i] {
-            Fold::Left(line) => {
-                width = line;
-                for (x, _) in dots.iter_mut() {
-                    if *x > line as i32 {
-                        *x = (*x - (line as i32 * 2)).abs();
+            Fold::Left(fold_line) => {
+                width = fold_line;
+                for (x, _) in &mut dots {
+                    if *x > fold_line as i32 {
+                        *x = (*x - (fold_line as i32 * 2)).abs();
                     }
                 }
             }
-            Fold::Up(line) => {
-                height = line;
-                for (_, y) in dots.iter_mut() {
-                    if *y > line as i32 {
-                        *y = (*y - (line as i32 * 2)).abs();
+            Fold::Up(fold_line) => {
+                height = fold_line;
+                for (_, y) in &mut dots {
+                    if *y > fold_line as i32 {
+                        *y = (*y - (fold_line as i32 * 2)).abs();
                     }
                 }
             }
@@ -92,28 +97,10 @@ fn calculate_folds(
     (dots, (width, height))
 }
 
-fn build_board((dots, (width, height)): (Vec<Dot>, (usize, usize))) -> Vec<Vec<char>> {
+fn build_board((dots, (width, height)): (Vec<DotCoordinate>, BoardDimensions)) -> Vec<Vec<char>> {
     dots.into_iter()
         .fold(vec![vec!['.'; width]; height], |mut board, (x, y)| {
             board[y as usize][x as usize] = '#';
             board
         })
-}
-
-fn main() {
-    let contents = fs::read_to_string("input.txt").expect("Something went wrong reading the file");
-
-    println!(
-        "Part one: \n{:?}",
-        build_board(calculate_folds(parse_input(&contents), Some(1)))
-            .iter()
-            .flatten()
-            .filter(|p| **p == '#')
-            .count()
-    );
-
-    println!("Part two:");
-    build_board(calculate_folds(parse_input(&contents), None))
-        .iter()
-        .for_each(|line| println!("{:?}", line));
 }
